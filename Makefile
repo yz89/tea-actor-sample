@@ -28,7 +28,7 @@ bench:
 
 build:
 	@$(CARGO) build --target wasm32-unknown-unknown
-	wascap sign $(DEBUG)/tea_sample.wasm $(DEBUG)/tea_sample_signed.wasm -i $(KEYDIR)/account.nk -u $(KEYDIR)/module.nk -s -c tea:ra -n "TEA project: Sample Guest Actor Application"
+	wascap sign $(DEBUG)/tea_sample.wasm $(DEBUG)/tea_sample_signed.wasm -i $(KEYDIR)/account.nk -u $(KEYDIR)/module.nk -s -c tea:tpm -n "TEA project: Sample Guest Actor Application"
 
 check:
 	@$(CARGO) check
