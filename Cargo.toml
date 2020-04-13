@@ -1,0 +1,18 @@
+[package]
+name = "tea-sample"
+version = "0.0.1"
+authors = ["kevingzhang <kevin.zhang.canada@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wascc-actor = "0.7.0"
+serde = "1.0.106"
+serde_json = "1.0.48"
+serde_derive = "1.0.105"
+rmp-serde = "0.14.3"
+[profile.release]
+# Optimize for small code size
+opt-level = "s"
