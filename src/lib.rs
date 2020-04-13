@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and 
 // limitations under the License.
-
+#[macro_use]
+extern crate log;
 extern crate wascc_actor as actor;
 #[macro_use]
 extern crate serde_derive;
@@ -21,20 +22,32 @@ extern crate serde_json;
 
 use actor::prelude::*;
 const CUSTOM_OPERATION: &str = "hello";
-const CAPABILITY_ID: &str = "tea:tpm";
+const CAPABILITY_ID_TPM: &str = "tea:tpm";
+const CAPABILITY_ID_LAYER1: &str = "tea:layer1";
 
 actor_handlers!{ codec::http::OP_HANDLE_REQUEST => hello_world,
     codec::core::OP_HEALTH_REQUEST => health }
 
-fn hello_world(_payload: codec::http::Request) -> HandlerResult<codec::http::Response> {
-    let res = untyped::default().call(
-        CAPABILITY_ID,
-        CUSTOM_OPERATION,
-        serialize(CustomMessage { super_secret: 12 })?,
-    )?;
+fn hello_world(payload: codec::http::Request) -> HandlerResult<codec::http::Response> {
+    info!("Received request: {:?}", payload);
+    logger::default().warn(&format!("Received an HTTP request: {:?}", payload))?;//in order to see this log output, please run the tea runtime using "RUST_LOG=warn cargo run" command
+    let res = match payload.path.as_str() {
+        "/tpm" => untyped::default().call(
+            CAPABILITY_ID_TPM,
+            CUSTOM_OPERATION,
+            serialize(CustomMessage { super_secret: 2 })?,
+        )?,
+        "/layer1" => untyped::default().call(
+            CAPABILITY_ID_LAYER1,
+            CUSTOM_OPERATION,
+            serialize(CustomMessage { super_secret: 12 })?,
+        )?,
+        _=> serialize(CustomReply { reply_value: 888})?,
+    };
+
     let reply: CustomReply = deserialize(&res)?;
 
-    let result = json!({ "result": reply.reply_value });
+    let result = json!({ "calling tea:layer1 got result": reply.reply_value });
     Ok(codec::http::Response::json(result, 200, "OK"))
 }
 

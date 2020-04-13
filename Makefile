@@ -28,7 +28,7 @@ bench:
 
 build:
 	@$(CARGO) build --target wasm32-unknown-unknown
-	wascap sign $(DEBUG)/tea_sample.wasm $(DEBUG)/tea_sample_signed.wasm -i $(KEYDIR)/account.nk -u $(KEYDIR)/module.nk -s -c tea:tpm -n "TEA project: Sample Guest Actor Application"
+	wascap sign $(DEBUG)/tea_sample.wasm $(DEBUG)/tea_sample_signed.wasm -i $(KEYDIR)/account.nk -u $(KEYDIR)/module.nk -s -l -c tea:tpm -c tea:layer1 -n "TEA project: Sample Guest Actor Application"
 
 check:
 	@$(CARGO) check
@@ -47,7 +47,7 @@ update:
 
 release:
 	@$(CARGO) build --release
-	wascap sign $(RELEASE)/tea_sample.wasm $(RELEASE)/tea_sample_signed.wasm -i $(KEYDIR)/account.nk -u $(KEYDIR)/module.nk -s -c tea:ra -n "TEA project: Sample Guest Actor Application"
+	wascap sign $(RELEASE)/tea_sample.wasm $(RELEASE)/tea_sample_signed.wasm -i $(KEYDIR)/account.nk -u $(KEYDIR)/module.nk -s -l -c tea:ra -n "TEA project: Sample Guest Actor Application"
 	
 keys: keys-account
 keys: keys-module
