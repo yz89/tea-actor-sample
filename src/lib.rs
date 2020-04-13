@@ -21,7 +21,7 @@ extern crate serde_json;
 
 use actor::prelude::*;
 const CUSTOM_OPERATION: &str = "hello";
-const CAPABILITY_ID: &str = "tea:ra";
+const CAPABILITY_ID: &str = "tea:tpm";
 
 actor_handlers!{ codec::http::OP_HANDLE_REQUEST => hello_world,
     codec::core::OP_HEALTH_REQUEST => health }
