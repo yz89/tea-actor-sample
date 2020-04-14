@@ -34,37 +34,57 @@ fn hello_world(payload: codec::http::Request) -> HandlerResult<codec::http::Resp
         logger::default().warn(&format!("Received an HTTP request: {:?}", payload))?;//in order to see this log output, please run the tea runtime using "RUST_LOG=warn cargo run" command
     }
     let res = match payload.path.as_str() {
-        "/" => {
-            let test_url_links: &str = " <html><head></head><body>\
-             <p><a href='http://localhost:8081/tpm?cmd=get_properties'>\
-             http://localhost:8081/get_properties\
-             </a></p> <p>\
-             <a href='http://localhost:8081/tpm?cmd=get_pcr'>\
-             http://localhost:8081/tpm?cmd=get_pcr\
-             </a></p>\
-              </body>\
-              </head>\
-              </html> ";
-            return Ok(codec::http::Response{status_code:200, status:String::from("OK"), header:std::collections::HashMap::new(), body:test_url_links.as_bytes().to_vec()})
-        },
-        "/tpm" => untyped::default().call(
-            CAPABILITY_ID_TPM,
-            CUSTOM_OPERATION,
-            serialize(CustomMessage { command: String::from(payload.query_string)})?,
-        )?,
-        "/layer1" => untyped::default().call(
-            CAPABILITY_ID_LAYER1,
-            CUSTOM_OPERATION,
-            serialize(CustomMessage { command: String::from(payload.query_string) })?,
-        )?,
-        _=> serialize(CustomReply { answer:  String::from("Default")})?,
+        "/" => return_home_page(),
+        "/tpm" => handle_tpm(&payload.query_string),
+        "/layer1" => handle_layer1(&payload.query_string),
+        _=> Ok(codec::http::Response::json("Unhandled path", 200, "OK"))  
     };
 
+    
+    res
+}
+
+fn return_home_page()->HandlerResult<codec::http::Response>{
+    let test_url_links: &str = " <html><head></head><body>\
+        <p><a href='http://localhost:8081/tpm?cmd=get_properties'>\
+        http://localhost:8081/tpm?cmd=get_properties\
+        </a></p> \
+        <p>\
+        <a href='http://localhost:8081/tpm?cmd=get_pcr'>\
+        http://localhost:8081/tpm?cmd=get_pcr\
+        </a></p>\
+        <p>\
+        <a href='http://localhost:8081/layer1?2'>\
+        http://localhost:8081/layer1?2\
+        </a></p>\
+        </body>\
+        </head>\
+        </html> ";
+    Ok(codec::http::Response{status_code:200, status:String::from("OK"), header:std::collections::HashMap::new(), body:test_url_links.as_bytes().to_vec()})
+}
+fn handle_tpm(query: &str)->HandlerResult<codec::http::Response> {
+    let res = untyped::default().call(
+        CAPABILITY_ID_TPM,
+        CUSTOM_OPERATION,
+        serialize(CustomMessage { command: String::from(query)})?,
+    )?;
     let reply: CustomReply = deserialize(&res)?;
 
-    let result = json!({ "calling actor got result": reply.answer });
-    Ok(codec::http::Response::json(result, 200, "OK"))
-}
+    let result = json!({ "calling tpm got result": reply.answer });
+    Ok(codec::http::Response::json(result, 200, "OK")) 
+} 
+
+fn handle_layer1(query: &str) ->HandlerResult<codec::http::Response> {
+    let res = untyped::default().call(
+        CAPABILITY_ID_LAYER1,
+        CUSTOM_OPERATION,
+        serialize(Layer1Message { key: query.parse::<i32>().unwrap() })?,
+    )?;
+    let reply: Layer1Reply = deserialize(&res)?;
+
+    let result = json!({ "calling layer1 result": reply.value });
+    Ok(codec::http::Response::json(result, 200, "OK"))  
+} 
 
 fn health(_req: codec::core::HealthRequest) -> HandlerResult<()> {
     Ok(())
@@ -78,4 +98,14 @@ pub struct CustomMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomReply {
     pub answer: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Layer1Message {
+    pub key: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Layer1Reply {
+    pub value: i32,
 }
