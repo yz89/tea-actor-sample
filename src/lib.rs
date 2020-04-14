@@ -30,24 +30,39 @@ actor_handlers!{ codec::http::OP_HANDLE_REQUEST => hello_world,
 
 fn hello_world(payload: codec::http::Request) -> HandlerResult<codec::http::Response> {
     info!("Received request: {:?}", payload);
-    logger::default().warn(&format!("Received an HTTP request: {:?}", payload))?;//in order to see this log output, please run the tea runtime using "RUST_LOG=warn cargo run" command
+    if payload.path != "/favicon.ico" {
+        logger::default().warn(&format!("Received an HTTP request: {:?}", payload))?;//in order to see this log output, please run the tea runtime using "RUST_LOG=warn cargo run" command
+    }
     let res = match payload.path.as_str() {
+        "/" => {
+            let test_url_links: &str = " <html><head></head><body>\
+             <p><a href='http://localhost:8081/tpm?cmd=get_properties'>\
+             http://localhost:8081/get_properties\
+             </a></p> <p>\
+             <a href='http://localhost:8081/tpm?cmd=get_pcr'>\
+             http://localhost:8081/tpm?cmd=get_pcr\
+             </a></p>\
+              </body>\
+              </head>\
+              </html> ";
+            return Ok(codec::http::Response{status_code:200, status:String::from("OK"), header:std::collections::HashMap::new(), body:test_url_links.as_bytes().to_vec()})
+        },
         "/tpm" => untyped::default().call(
             CAPABILITY_ID_TPM,
             CUSTOM_OPERATION,
-            serialize(CustomMessage { super_secret: 2 })?,
+            serialize(CustomMessage { command: String::from(payload.query_string)})?,
         )?,
         "/layer1" => untyped::default().call(
             CAPABILITY_ID_LAYER1,
             CUSTOM_OPERATION,
-            serialize(CustomMessage { super_secret: 12 })?,
+            serialize(CustomMessage { command: String::from(payload.query_string) })?,
         )?,
-        _=> serialize(CustomReply { reply_value: 888})?,
+        _=> serialize(CustomReply { answer:  String::from("Default")})?,
     };
 
     let reply: CustomReply = deserialize(&res)?;
 
-    let result = json!({ "calling tea:layer1 got result": reply.reply_value });
+    let result = json!({ "calling actor got result": reply.answer });
     Ok(codec::http::Response::json(result, 200, "OK"))
 }
 
@@ -57,10 +72,10 @@ fn health(_req: codec::core::HealthRequest) -> HandlerResult<()> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomMessage {
-    pub super_secret: i32,
+    pub command: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomReply {
-    pub reply_value: i32,
+    pub answer: String,
 }
