@@ -23,7 +23,9 @@ extern crate serde_json;
 use actor::prelude::*;
 const CUSTOM_OPERATION: &str = "hello";
 const CAPABILITY_ID_TPM: &str = "tea:tpm";
+
 const CAPABILITY_ID_LAYER1: &str = "tea:layer1";
+const LAYER1_OPERATION: &str = "tpm_info";
 
 actor_handlers!{ codec::http::OP_HANDLE_REQUEST => hello_world,
     codec::core::OP_HEALTH_REQUEST => health }
@@ -54,8 +56,8 @@ fn return_home_page()->HandlerResult<codec::http::Response>{
         http://localhost:8081/tpm?cmd=get_pcr\
         </a></p>\
         <p>\
-        <a href='http://localhost:8081/layer1?2'>\
-        http://localhost:8081/layer1?2\
+        <a href='http://localhost:8081/layer1?eb628d56ad353cc7a9b4db31aae999c402a02da9da6d2651a8e9aa2f73920b95'>\
+        http://localhost:8081/layer1?eb628d56ad353cc7a9b4db31aae999c402a02da9da6d2651a8e9aa2f73920b95\
         </a></p>\
         </body>\
         </head>\
@@ -77,12 +79,12 @@ fn handle_tpm(query: &str)->HandlerResult<codec::http::Response> {
 fn handle_layer1(query: &str) ->HandlerResult<codec::http::Response> {
     let res = untyped::default().call(
         CAPABILITY_ID_LAYER1,
-        CUSTOM_OPERATION,
-        serialize(Layer1Message { key: query.parse::<i32>().unwrap() })?,
+        LAYER1_OPERATION,
+        serialize(Layer1Message { key: query.parse::<String>().unwrap() })?,
     )?;
-    let reply: Layer1Reply = deserialize(&res)?;
+    let node: Node = deserialize(&res)?;
 
-    let result = json!({ "calling layer1 result": reply.value });
+    let result = json!({ "calling layer1 result": node });
     Ok(codec::http::Response::json(result, 200, "OK"))  
 } 
 
@@ -102,10 +104,11 @@ pub struct CustomReply {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer1Message {
-    pub key: i32,
+    pub key: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Layer1Reply {
-    pub value: i32,
+pub struct Node {
+    key: Vec<u8>,
+    amt: u64,
 }
